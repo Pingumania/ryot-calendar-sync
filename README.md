@@ -6,11 +6,12 @@ tracked in [Ryot](https://github.com/IgnisDa/ryot).
 ## Setup
 
 1. Get a Ryot API token: Go to Settings -> Integrations -> Create API token.
-1. Pick a `SYNC_TOKEN`: any long random string works, e.g. `openssl rand -hex 32`.
+2. Pick a `SYNC_TOKEN`: any long random string works, e.g. `openssl rand -hex 32`.
 
-   > [!IMPORTANT]
-   > Anyone with this URL can read your feed.
-1. `docker-compose.yml`:
+  > [!IMPORTANT]
+  > Anyone with this token can read your feed.
+
+3. `docker-compose.yml`:
    ```yaml
    services:
      ryot-calendar-sync:
@@ -23,7 +24,7 @@ tracked in [Ryot](https://github.com/IgnisDa/ryot).
        ports:
          - "8090:8090"
    ```
-1. `docker compose up -d`
+4. `docker compose up -d`
 
 ## Env variables
 
