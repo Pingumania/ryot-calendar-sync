@@ -52,11 +52,3 @@ Each `type=` feed is auto-named from `CALENDAR_NAME` plus the type, e.g.
 `Ryot: Upcoming Releases (Movie)`, so calendar apps show them as distinct
 subscriptions. `CALENDAR_NAME` itself is one global base name set at startup --
 there's no way to give arbitrary custom names per URL.
-
-## Health check
-
-`GET /healthz` reports whether the feed has been populated by at least one
-successful refresh. It takes no token -- Docker's `HEALTHCHECK` polls it
-every 30s, and it's reachable on the published port -- and it never calls out
-to Ryot itself, so a poll (or anyone else hitting the port) doesn't cost a
-Ryot API call.
