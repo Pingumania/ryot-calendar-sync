@@ -104,7 +104,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           mux,
+		Handler:           withAccessLog(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -134,6 +134,40 @@ func main() {
 		log.Printf("shutdown error: %v", err)
 	}
 	wg.Wait()
+}
+
+// statusRecorder captures the status code a handler writes, for access
+// logging. Its zero-value default of 200 matches net/http's own behavior
+// when a handler writes a body without ever calling WriteHeader.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rec *statusRecorder) WriteHeader(status int) {
+	rec.status = status
+	rec.ResponseWriter.WriteHeader(status)
+}
+
+// withAccessLog logs one line per request. The token query parameter is
+// deliberately not logged; only the type parameter is, since it is not
+// secret.
+func withAccessLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+
+		remote := r.Header.Get("X-Forwarded-For")
+		if remote == "" {
+			remote = r.RemoteAddr
+		}
+		path := r.URL.Path
+		if t := r.URL.Query().Get("type"); t != "" {
+			path += "?type=" + t
+		}
+		log.Printf("%s %s %d %s %s", r.Method, path, rec.status, time.Since(start).Round(time.Millisecond), remote)
+	})
 }
 
 func handleCalendar(cfg config, cache *feedCache) http.HandlerFunc {
