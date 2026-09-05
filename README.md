@@ -5,6 +5,11 @@ tracked in [Ryot](https://github.com/IgnisDa/ryot).
 
 ## Setup
 
+1. Get a Ryot API token: Go to Settings -> Integrations -> Create API token.
+1. Pick a `SYNC_TOKEN`: any long random string works, e.g. `openssl rand -hex 32`.
+
+   > [!IMPORTANT]
+   > Anyone with this URL can read your feed.
 1. `docker-compose.yml`:
    ```yaml
    services:
