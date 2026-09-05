@@ -1,8 +1,5 @@
 // Package ical builds minimal RFC 5545 iCalendar (.ics) feeds. It only
-// implements what this tool needs: a VCALENDAR of all-day VEVENTs. No
-// external dependencies -- calendar feeds are simple enough, and every
-// mainstream client (Google Calendar, Apple Calendar, Outlook) only needs
-// this small a subset.
+// implements what this tool needs: a VCALENDAR of all-day VEVENTs.
 package ical
 
 import (
@@ -31,14 +28,13 @@ func Build(calName string, events []Event) []byte {
 	writeLine(&b, "CALSCALE:GREGORIAN")
 	writeLine(&b, "METHOD:PUBLISH")
 	writeLine(&b, "X-WR-CALNAME:"+escapeText(calName))
-	writeLine(&b, "X-PUBLISHED-TTL:PT12H") // hint for clients that honor it (Google mostly ignores this)
+	writeLine(&b, "X-PUBLISHED-TTL:PT12H")
 
 	for _, ev := range events {
 		writeLine(&b, "BEGIN:VEVENT")
 		writeLine(&b, "UID:"+escapeText(ev.UID)+"@ryot-calendar-sync")
 		writeLine(&b, "DTSTAMP:"+now)
 		writeLine(&b, "DTSTART;VALUE=DATE:"+ev.Date.Format("20060102"))
-		// All-day events should span exactly one day: DTEND is exclusive.
 		writeLine(&b, "DTEND;VALUE=DATE:"+ev.Date.AddDate(0, 0, 1).Format("20060102"))
 		writeLine(&b, "SUMMARY:"+escapeText(ev.Summary))
 		if ev.Description != "" {
@@ -47,7 +43,7 @@ func Build(calName string, events []Event) []byte {
 		if ev.URL != "" {
 			writeLine(&b, "URL:"+escapeText(ev.URL))
 		}
-		writeLine(&b, "TRANSP:TRANSPARENT") // don't show as "busy"
+		writeLine(&b, "TRANSP:TRANSPARENT")
 		writeLine(&b, "END:VEVENT")
 	}
 
@@ -83,7 +79,7 @@ func writeLine(b *strings.Builder, line string) {
 	for len(remaining) > 0 {
 		limit := maxLineLen
 		if !first {
-			limit = maxLineLen - 1 // account for the leading space
+			limit = maxLineLen - 1
 		}
 		if limit > len(remaining) {
 			limit = len(remaining)
@@ -108,6 +104,3 @@ func isUTF8Continuation(c byte) bool {
 
 // ContentType is the MIME type calendar clients expect for .ics feeds.
 const ContentType = "text/calendar; charset=utf-8"
-
-// Note: an empty VCALENDAR (no upcoming releases) is a perfectly valid feed,
-// so callers can pass a nil/empty slice straight through to Build.

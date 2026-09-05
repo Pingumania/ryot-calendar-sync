@@ -17,14 +17,12 @@ import (
 
 // Client talks to a Ryot instance's GraphQL endpoint.
 //
-// Ryot expects requests to be authenticated with:
+// Requests are authenticated with:
 //
 //	Authorization: Bearer <api-token>
 //
 // The token is generated from within Ryot itself (Settings -> your profile
-// -> API Keys), which calls Ryot's `generateAuthToken` mutation under the
-// hood. There is no separate signup step for this tool: point it at an
-// existing Ryot user's token.
+// -> API Keys).
 type Client struct {
 	baseURL    string
 	apiToken   string
@@ -96,7 +94,6 @@ func (c *Client) do(ctx context.Context, query string, variables map[string]any,
 		for _, e := range gr.Errors {
 			msgs = append(msgs, e.Message)
 		}
-		// NO_USER_ID is Ryot's error when the bearer token is missing/invalid.
 		return fmt.Errorf("ryot graphql error(s): %s", strings.Join(msgs, "; "))
 	}
 	if out == nil {
@@ -115,18 +112,14 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
-// CalendarEvent mirrors Ryot's GraphqlCalendarEvent type. Title and media
-// type are deliberately absent here -- Ryot only returns the metadata ID on
-// the calendar event itself, so a follow-up MetadataDetails call is needed.
+// CalendarEvent mirrors Ryot's GraphqlCalendarEvent type.
 type CalendarEvent struct {
 	Date            string  `json:"date"` // YYYY-MM-DD
 	MetadataID      string  `json:"metadataId"`
 	CalendarEventID string  `json:"calendarEventId"`
 	MetadataImage   *string `json:"metadataImage"`
 
-	// Shows get one calendar event per episode rather than one per title,
-	// and this is the only field that says which episode an event is for.
-	// Non-nil only for shows: a movie or game release has it nil.
+	// Non-nil only for shows.
 	ShowExtraInformation *ShowExtra `json:"showExtraInformation"`
 }
 
@@ -149,13 +142,8 @@ query UpcomingCalendarEvents($input: UserUpcomingCalendarEventInput!) {
 }`
 
 // UpcomingCalendarEvents returns every upcoming release Ryot knows about for
-// items the authenticated user is monitoring (i.e. what powers the
-// "Upcoming" section of the Ryot dashboard) across ALL media types. Callers
-// must filter by lot themselves via MetadataDetails.
-//
-// UserUpcomingCalendarEventInput is a oneof: Ryot rejects a request setting
-// both nextDays and nextMedia, so only nextDays (the lookahead window) is
-// sent -- maxEvents is enforced client-side anyway (see UpcomingReleases).
+// items the authenticated user is monitoring, across ALL media types.
+// Callers must filter by lot themselves via MetadataDetails.
 func (c *Client) UpcomingCalendarEvents(ctx context.Context, nextDays int) ([]CalendarEvent, error) {
 	var data struct {
 		UserUpcomingCalendarEvents []CalendarEvent `json:"userUpcomingCalendarEvents"`
@@ -171,16 +159,12 @@ func (c *Client) UpcomingCalendarEvents(ctx context.Context, nextDays int) ([]Ca
 	return data.UserUpcomingCalendarEvents, nil
 }
 
-// MediaLot identifies which kind of media a Ryot item is. It's a distinct
-// type rather than a bare string so a typo'd or unrecognised lot fails at
-// the point it's parsed (parseLots) instead of comparing silently false
-// wherever a raw string was mistyped.
+// MediaLot identifies which kind of media a Ryot item is.
 type MediaLot string
 
 // The MediaLot enum values this tool can present. Ryot also defines
 // ANIME, AUDIO_BOOK, BOOK, COMIC_BOOK, MANGA, MUSIC, PODCAST and
-// VISUAL_NOVEL, which are left out only because nothing here formats them
-// specially -- they would otherwise work fine.
+// VISUAL_NOVEL.
 const (
 	MediaLotVideoGame MediaLot = "VIDEO_GAME"
 	MediaLotMovie     MediaLot = "MOVIE"

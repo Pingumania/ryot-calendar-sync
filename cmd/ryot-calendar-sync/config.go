@@ -89,8 +89,7 @@ func getEnvIntDefault(key string, def int) (int, error) {
 	return n, nil
 }
 
-// lotAliases maps a MEDIA_TYPES / ?type= value to Ryot's canonical MediaLot
-// value.
+// lotAliases maps a MEDIA_TYPES / ?type= value to Ryot's canonical MediaLot value.
 var lotAliases = map[string]ryot.MediaLot{
 	"VIDEO_GAME": ryot.MediaLotVideoGame,
 	"MOVIE":      ryot.MediaLotMovie,
@@ -109,10 +108,7 @@ func lotStrings(lots []ryot.MediaLot) []string {
 
 // parseLots turns a comma-separated list of media types into canonical
 // MediaLot values, rejecting anything unrecognised. When allowed is non-nil
-// the result must also be a subset of it -- that is how a ?type= filter is
-// held to what this service actually fetches, so asking for a type it does
-// not collect is a clear error rather than a calendar that silently stays
-// empty forever.
+// the result must also be a subset of it.
 func parseLots(raw string, allowed []ryot.MediaLot) ([]ryot.MediaLot, error) {
 	lots := make([]ryot.MediaLot, 0, 4)
 	seen := make(map[ryot.MediaLot]bool, 4)

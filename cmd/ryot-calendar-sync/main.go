@@ -1,8 +1,7 @@
 // Command ryot-calendar-sync exposes upcoming releases tracked in a
 // self-hosted Ryot instance (https://github.com/IgnisDa/ryot) -- video games
 // and movies coming out, episodes of shows airing -- as a subscribable .ics
-// calendar feed, so Google Calendar / Apple Calendar / Outlook can sync them
-// directly without a browser extension or manual exports.
+// calendar feed.
 package main
 
 import (
@@ -21,11 +20,7 @@ import (
 	"ryot-calendar-sync/internal/ryot"
 )
 
-// feedCache holds the last successfully fetched release list so requests do
-// not have to wait on Ryot, and so a transient Ryot outage does not take the
-// whole feed down. It caches releases rather than rendered .ics bytes because
-// each request may ask for a different subset of media types; rendering a few
-// hundred events per request is far cheaper than the Ryot round trips.
+// feedCache holds the last successfully fetched release list.
 type feedCache struct {
 	mu          sync.RWMutex
 	releases    []ryot.Release
@@ -45,9 +40,7 @@ func (c *feedCache) set(releases []ryot.Release) {
 	c.generatedAt = time.Now()
 }
 
-// refresher owns everything a periodic feed refresh needs, so it doesn't
-// have to travel as a separate (cfg, client, cache) tuple through every
-// function that touches it.
+// refresher owns everything a periodic feed refresh needs.
 type refresher struct {
 	cfg    config
 	client *ryot.Client
@@ -60,7 +53,6 @@ func (rf *refresher) refresh(ctx context.Context) {
 
 	releases, err := rf.client.UpcomingReleases(ctx, rf.cfg.LookaheadDays, rf.cfg.MaxEvents, rf.cfg.Concurrency, rf.cfg.MediaTypes)
 	if err != nil {
-		// Keep serving whatever was cached before rather than emptying the feed.
 		log.Printf("refresh failed, keeping previous feed: %v", err)
 		return
 	}
@@ -97,8 +89,6 @@ func main() {
 		cache:  &feedCache{},
 	}
 
-	// Populate the cache once before serving so the first request isn't slow
-	// or, worse, empty because of a race with the background refresher.
 	rf.refresh(ctx)
 
 	var wg sync.WaitGroup
@@ -118,9 +108,6 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Reported on this channel instead of log.Fatalf so a listen failure goes
-	// through the same graceful-shutdown path as SIGINT/SIGTERM, rather than
-	// os.Exit-ing straight out of a background goroutine.
 	serverErr := make(chan error, 1)
 	go func() {
 		log.Printf("ryot-calendar-sync listening on %s (feed: /calendar.ics?token=***, media types: %s)",
@@ -139,7 +126,7 @@ func main() {
 			log.Printf("server error: %v", err)
 		}
 	}
-	stop() // also unblocks rf.loop if we got here via serverErr rather than a signal
+	stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -153,7 +140,7 @@ func handleCalendar(cfg config, cache *feedCache) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
 		if subtle.ConstantTimeCompare([]byte(token), []byte(cfg.SyncToken)) != 1 {
-			http.Error(w, "not found", http.StatusNotFound) // don't hint that a token exists
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 
@@ -184,13 +171,8 @@ func handleCalendar(cfg config, cache *feedCache) http.HandlerFunc {
 	}
 }
 
-// handleHealthz reports local readiness only: whether the feed cache has been
-// populated by at least one successful refresh. It deliberately does not call
-// out to Ryot -- this endpoint is unauthenticated (Docker's HEALTHCHECK polls
-// it every 30s, and it's reachable on the published port) so making it hit
-// Ryot would let every poll, or anyone on the port, trigger a Ryot API call.
-// A bad RYOT_BASE_URL/RYOT_API_TOKEN still surfaces here indirectly: refresh
-// logs the failure and the cache never gets its first populate.
+// handleHealthz reports whether the feed cache has been populated by at
+// least one successful refresh.
 func handleHealthz(cache *feedCache) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, generatedAt := cache.get(); generatedAt.IsZero() {

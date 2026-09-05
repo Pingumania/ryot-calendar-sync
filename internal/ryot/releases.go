@@ -19,9 +19,7 @@ type Release struct {
 	Description     string
 	SourceURL       string
 
-	// Season and Episode are set only for the installment-based lots, and
-	// identify which installment this event is. Season is meaningful for
-	// MediaLotShow; Episode is 0 when Ryot doesn't know the number.
+	// Set only for the installment-based lots.
 	Season  int
 	Episode int
 }
@@ -32,15 +30,8 @@ const dateLayout = "2006-01-02"
 // UpcomingReleases fetches every upcoming calendar event the user is
 // monitoring, resolves each one's metadata, and returns the entries whose
 // lot appears in lots (an empty lots means every lot), sorted by date.
-//
-// Lookups are done concurrently (bounded by concurrency) since Ryot's
-// calendar query does not embed titles or media type -- each event needs its
-// own metadataDetails round trip, which is also the only way to know an
-// event's lot, so filtering cannot be pushed into the query.
-//
-// maxEvents caps how many of Ryot's returned events are considered at all.
-// It's enforced entirely client-side: Ryot's query input is a oneof, so it
-// cannot also be told nextMedia alongside nextDays.
+// Lookups are done concurrently, bounded by concurrency. maxEvents caps how
+// many of Ryot's returned events are considered at all.
 func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, concurrency int, lots []MediaLot) ([]Release, error) {
 	events, err := c.UpcomingCalendarEvents(ctx, nextDays)
 	if err != nil {
@@ -61,7 +52,6 @@ func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, conc
 		wanted[lot] = true
 	}
 
-	// One slot per event, so the workers never need to share anything.
 	type result struct {
 		release Release
 		keep    bool
@@ -69,8 +59,6 @@ func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, conc
 	}
 	results := make([]result, len(events))
 
-	// Acquiring before the `go` statement bounds live goroutines, not just
-	// in-flight requests.
 	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
 	for i, ev := range events {
@@ -96,15 +84,10 @@ func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, conc
 			releases = append(releases, r.release)
 		}
 	}
-	// A handful of individual metadata lookups failing shouldn't take down
-	// the whole feed, but if literally everything failed, surface it.
 	if firstErr != nil && len(releases) == 0 {
 		return nil, firstErr
 	}
 
-	// Ryot returns events in date order, but a feed mixing lots reads better
-	// with a total order, and a stable one keeps the .ics byte-identical
-	// between refreshes when nothing has changed.
 	sort.Slice(releases, func(i, j int) bool {
 		a, b := releases[i], releases[j]
 		switch {
@@ -122,8 +105,7 @@ func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, conc
 }
 
 // release resolves a single calendar event. A false keep means the event is
-// for a lot the caller didn't ask for, which is expected rather than an
-// error: Ryot's calendar mixes all media types together.
+// for a lot the caller didn't ask for.
 func (c *Client) release(ctx context.Context, ev CalendarEvent, wanted map[MediaLot]bool) (rel Release, keep bool, err error) {
 	details, err := c.MetadataDetails(ctx, ev.MetadataID)
 	if err != nil {

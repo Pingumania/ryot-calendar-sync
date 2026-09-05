@@ -40,8 +40,7 @@ func nameFor(lot ryot.MediaLot) string {
 	return string(lot)
 }
 
-// countByLot renders a per-media-type breakdown for the refresh log line, so
-// that a MEDIA_TYPES or Ryot-monitoring mistake shows up as an obvious zero.
+// countByLot renders a per-media-type breakdown for the refresh log line.
 func countByLot(releases []ryot.Release) string {
 	counts := make(map[ryot.MediaLot]int, len(lotLabels))
 	for _, r := range releases {
@@ -76,10 +75,7 @@ func icalEvents(releases []ryot.Release, lots []ryot.MediaLot) []ical.Event {
 	return events
 }
 
-// summaryFor titles an event. Shows air one episode at a time, and Ryot emits
-// one calendar event per episode, so the season and episode are what tell one
-// of a show's entries from the next -- twelve identical "Severance releases"
-// rows would be useless.
+// summaryFor titles an event.
 func summaryFor(r ryot.Release) string {
 	switch r.Lot {
 	case ryot.MediaLotShow:
@@ -89,9 +85,7 @@ func summaryFor(r ryot.Release) string {
 	}
 }
 
-// calendarName keeps the filtered feeds distinguishable, so subscribing to
-// ?type=show and ?type=movie separately does not produce two calendars that
-// are both just named "Ryot: Upcoming Releases".
+// calendarName keeps the filtered feeds distinguishable.
 func calendarName(base string, lots, all []ryot.MediaLot) string {
 	if len(lots) == len(all) {
 		return base
