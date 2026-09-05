@@ -47,8 +47,3 @@ https://ryot-calendar.example.com/calendar.ics?token=<SYNC_TOKEN>&type=movie
 https://ryot-calendar.example.com/calendar.ics?token=<SYNC_TOKEN>&type=show
 https://ryot-calendar.example.com/calendar.ics?token=<SYNC_TOKEN>&type=video_game
 ```
-
-Each `type=` feed is auto-named from `CALENDAR_NAME` plus the type, e.g.
-`Ryot: Upcoming Releases (Movie)`, so calendar apps show them as distinct
-subscriptions. `CALENDAR_NAME` itself is one global base name set at startup --
-there's no way to give arbitrary custom names per URL.
