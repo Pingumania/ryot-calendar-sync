@@ -38,13 +38,11 @@ const dateLayout = "2006-01-02"
 // own metadataDetails round trip, which is also the only way to know an
 // event's lot, so filtering cannot be pushed into the query.
 //
-// maxEvents caps how many of Ryot's returned events are considered at all,
-// applied here rather than left to Ryot: it's passed through to the
-// underlying query as a hint, but nothing here controls how Ryot interprets
-// that, so the cap is re-applied locally to guarantee it actually bounds
-// what gets fetched and resolved.
+// maxEvents caps how many of Ryot's returned events are considered at all.
+// It's enforced entirely client-side: Ryot's query input is a oneof, so it
+// cannot also be told nextMedia alongside nextDays.
 func (c *Client) UpcomingReleases(ctx context.Context, nextDays, maxEvents, concurrency int, lots []MediaLot) ([]Release, error) {
-	events, err := c.UpcomingCalendarEvents(ctx, nextDays, maxEvents)
+	events, err := c.UpcomingCalendarEvents(ctx, nextDays)
 	if err != nil {
 		return nil, fmt.Errorf("fetch upcoming calendar events: %w", err)
 	}

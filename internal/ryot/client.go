@@ -152,14 +152,17 @@ query UpcomingCalendarEvents($input: UserUpcomingCalendarEventInput!) {
 // items the authenticated user is monitoring (i.e. what powers the
 // "Upcoming" section of the Ryot dashboard) across ALL media types. Callers
 // must filter by lot themselves via MetadataDetails.
-func (c *Client) UpcomingCalendarEvents(ctx context.Context, nextDays, nextMedia int) ([]CalendarEvent, error) {
+//
+// UserUpcomingCalendarEventInput is a oneof: Ryot rejects a request setting
+// both nextDays and nextMedia, so only nextDays (the lookahead window) is
+// sent -- maxEvents is enforced client-side anyway (see UpcomingReleases).
+func (c *Client) UpcomingCalendarEvents(ctx context.Context, nextDays int) ([]CalendarEvent, error) {
 	var data struct {
 		UserUpcomingCalendarEvents []CalendarEvent `json:"userUpcomingCalendarEvents"`
 	}
 	variables := map[string]any{
 		"input": map[string]any{
-			"nextDays":  nextDays,
-			"nextMedia": nextMedia,
+			"nextDays": nextDays,
 		},
 	}
 	if err := c.do(ctx, upcomingCalendarEventsQuery, variables, &data); err != nil {
