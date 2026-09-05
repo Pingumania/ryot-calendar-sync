@@ -5,6 +5,7 @@ package ical
 import (
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Event is one all-day calendar entry.
@@ -84,8 +85,7 @@ func writeLine(b *strings.Builder, line string) {
 		if limit > len(remaining) {
 			limit = len(remaining)
 		}
-		// Avoid splitting a UTF-8 rune in half.
-		for limit > 0 && isUTF8Continuation(remaining[limit-1]) {
+		for limit > 0 && limit < len(remaining) && !utf8.RuneStart(remaining[limit]) {
 			limit--
 		}
 		if !first {
@@ -96,10 +96,6 @@ func writeLine(b *strings.Builder, line string) {
 		remaining = remaining[limit:]
 		first = false
 	}
-}
-
-func isUTF8Continuation(c byte) bool {
-	return c&0xC0 == 0x80
 }
 
 // ContentType is the MIME type calendar clients expect for .ics feeds.
