@@ -81,7 +81,7 @@ func summaryFor(r ryot.Release) string {
 	case ryot.MediaLotShow:
 		return fmt.Sprintf("%s S%02dE%02d", r.Title, r.Season, r.Episode)
 	default:
-		return r.Title + " releases"
+		return r.Title
 	}
 }
 
